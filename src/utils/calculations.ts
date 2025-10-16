@@ -36,6 +36,36 @@ export const formatCurrency = (amount: number): string => {
 /**
  * Generate a unique ID with a prefix
  */
-export const generateId = (prefix: string): string => {
-  return `${prefix}_${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+export const generateId = (prefix: string = 'id'): string => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+/**
+ * Generate the next invoice number based on existing invoices
+ * Format: INV-YYYY-NNN (e.g., INV-2025-001, INV-2025-002)
+ */
+export const generateInvoiceNumber = (existingInvoices: { invoiceNumber: string }[]): string => {
+  const currentYear = new Date().getFullYear();
+  const yearPrefix = `INV-${currentYear}-`;
+  
+  // Filter invoices from current year
+  const currentYearInvoices = existingInvoices.filter(inv => 
+    inv.invoiceNumber.startsWith(yearPrefix)
+  );
+  
+  if (currentYearInvoices.length === 0) {
+    return `${yearPrefix}001`;
+  }
+  
+  // Extract numbers and find the highest
+  const numbers = currentYearInvoices.map(inv => {
+    const match = inv.invoiceNumber.match(/INV-\d{4}-(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+  });
+  
+  const maxNumber = Math.max(...numbers);
+  const nextNumber = maxNumber + 1;
+  
+  // Pad with zeros to 3 digits
+  return `${yearPrefix}${nextNumber.toString().padStart(3, '0')}`;
 };

@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useMemo } from 'react';
+// import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Eye, Copy, Trash2, Search } from 'lucide-react';
+import { Eye, Copy, Trash2, Search, FileDown } from 'lucide-react';
 import type { Invoice } from '../types';
 import { useStore } from '../contexts/store';
 import { useNotificationStore } from '../contexts/notificationStore';
@@ -10,6 +12,7 @@ import { ViewInvoiceModal } from '../components/invoice/ViewInvoiceModal';
 import { formatCurrency } from '../utils/calculations';
 import { formatDate } from '../utils/dateHelpers';
 import { generateId } from '../utils/calculations';
+import { exportToPDF } from '../utils/pdfExport';
 
 const PageTitle = styled.h1`
   font-size: ${({ theme }) => theme.fontSizes['3xl']};
@@ -193,6 +196,35 @@ export const InvoiceHistory: React.FC = () => {
     setViewingInvoice(null);
   };
 
+  const handleExportPDF = async (invoice: Invoice) => {
+    try {
+      // Create a temporary container for the invoice preview
+      const tempDiv = document.createElement('div');
+      tempDiv.id = `temp-invoice-${invoice.id}`;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+
+      // We'll use the ViewInvoiceModal's preview by temporarily opening it
+      setViewingInvoice(invoice);
+      
+      // Wait a bit for render
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      await exportToPDF('invoice-preview', `Invoice-${invoice.invoiceNumber}`);
+      addNotification('success', `Invoice ${invoice.invoiceNumber} exported to PDF successfully!`);
+      
+      // Clean up
+      setViewingInvoice(null);
+      if (tempDiv.parentNode) {
+        document.body.removeChild(tempDiv);
+      }
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      addNotification('error', 'Failed to export PDF. Please try again.');
+    }
+  };
+
   return (
     <div>
       <PageTitle>Invoice History</PageTitle>
@@ -268,13 +300,23 @@ export const InvoiceHistory: React.FC = () => {
                           variant="secondary"
                           size="sm"
                           onClick={() => handleView(invoice.id)}
+                          title="View Invoice"
                         >
                           <Eye size={16} />
                         </Button>
                         <Button
                           variant="secondary"
                           size="sm"
+                          onClick={() => handleExportPDF(invoice)}
+                          title="Export to PDF"
+                        >
+                          <FileDown size={16} />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => handleDuplicate(invoice.id)}
+                          title="Duplicate Invoice"
                         >
                           <Copy size={16} />
                         </Button>
@@ -282,6 +324,7 @@ export const InvoiceHistory: React.FC = () => {
                           variant="danger"
                           size="sm"
                           onClick={() => handleDelete(invoice.id, invoice.invoiceNumber)}
+                          title="Delete Invoice"
                         >
                           <Trash2 size={16} />
                         </Button>

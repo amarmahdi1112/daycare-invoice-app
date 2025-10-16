@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Save, FileDown, Plus } from 'lucide-react';
@@ -10,7 +10,7 @@ import { Input, Label, Select, InputWrapper } from '../components/common/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { LineItemForm } from '../components/invoice/LineItemForm';
 import { InvoicePreview } from '../components/invoice/InvoicePreview';
-import { generateId, calculateInvoiceTotal } from '../utils/calculations';
+import { generateId, calculateInvoiceTotal, generateInvoiceNumber } from '../utils/calculations';
 import { getTodayDate } from '../utils/dateHelpers';
 import { exportToPDF } from '../utils/pdfExport';
 
@@ -94,7 +94,7 @@ const SectionTitle = styled.h3`
 
 export const NewInvoice: React.FC = () => {
   const navigate = useNavigate();
-  const { addInvoice, clients } = useStore();
+  const { addInvoice, clients, invoices } = useStore();
   const { addNotification } = useNotificationStore();
   const todayDate = getTodayDate();
 
@@ -112,6 +112,13 @@ export const NewInvoice: React.FC = () => {
       subsidy: 0,
     },
   ]);
+
+  // Auto-generate invoice number on component mount
+  useEffect(() => {
+    const newInvoiceNumber = generateInvoiceNumber(invoices);
+    setInvoiceNumber(newInvoiceNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAddLineItem = () => {
     const newItem: LineItem = {
@@ -143,8 +150,8 @@ export const NewInvoice: React.FC = () => {
   };
 
   const handleSaveInvoice = () => {
-    if (!invoiceNumber || !selectedClientId) {
-      addNotification('error', 'Please fill in all required fields (Invoice Number and Client)');
+    if (!selectedClientId) {
+      addNotification('error', 'Please select a client');
       return;
     }
 
@@ -167,8 +174,8 @@ export const NewInvoice: React.FC = () => {
   };
 
   const handleExportPDF = async () => {
-    if (!invoiceNumber || !selectedClientId) {
-      addNotification('error', 'Please fill in all required fields before exporting');
+    if (!selectedClientId) {
+      addNotification('error', 'Please select a client before exporting');
       return;
     }
 
@@ -199,13 +206,13 @@ export const NewInvoice: React.FC = () => {
             <CardContent>
               <FormGrid>
                 <InputWrapper>
-                  <Label>Invoice Number *</Label>
+                  <Label>Invoice Number (Auto-Generated)</Label>
                   <Input
                     type="text"
                     value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(e.target.value)}
-                    placeholder="e.g., BAA-2025-0601"
-                    required
+                    readOnly
+                    placeholder="INV-2025-001"
+                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                   />
                 </InputWrapper>
 
