@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useMemo } from 'react';
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Eye, Copy, Trash2, Search, FileDown } from 'lucide-react';
+import { Eye, Copy, Trash2, Search, FileDown, Edit } from 'lucide-react';
 import type { Invoice } from '../types';
 import { useStore } from '../contexts/store';
 import { useNotificationStore } from '../contexts/notificationStore';
@@ -137,6 +137,7 @@ const StatValue = styled.span`
 `;
 
 export const InvoiceHistory: React.FC = () => {
+  const navigate = useNavigate();
   const { invoices, clients, deleteInvoice, addInvoice, getInvoiceById } = useStore();
   const { addNotification } = useNotificationStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -189,6 +190,10 @@ export const InvoiceHistory: React.FC = () => {
       setViewingInvoice(invoice);
       setIsViewModalOpen(true);
     }
+  };
+
+  const handleEdit = (invoiceId: string) => {
+    navigate(`/new-invoice?edit=${invoiceId}`);
   };
 
   const handleCloseViewModal = () => {
@@ -299,6 +304,14 @@ export const InvoiceHistory: React.FC = () => {
                           title="View Invoice"
                         >
                           <Eye size={16} />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleEdit(invoice.id)}
+                          title="Edit Invoice"
+                        >
+                          <Edit size={16} />
                         </Button>
                         <Button
                           variant="secondary"

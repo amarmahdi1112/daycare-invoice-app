@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Save, FileDown, Plus } from 'lucide-react';
 import type { LineItem, Invoice } from '../types';
@@ -9,6 +10,7 @@ import { Button } from '../components/common/Button';
 import { Input, Label, Select, InputWrapper } from '../components/common/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 import { LineItemForm } from '../components/invoice/LineItemForm';
+import { LineItemTemplates } from '../components/invoice/LineItemTemplates';
 import { InvoicePreview } from '../components/invoice/InvoicePreview';
 import { generateId, calculateInvoiceTotal, generateInvoiceNumber } from '../utils/calculations';
 import { getTodayDate } from '../utils/dateHelpers';
@@ -94,9 +96,13 @@ const SectionTitle = styled.h3`
 
 export const NewInvoice: React.FC = () => {
   const navigate = useNavigate();
-  const { addInvoice, clients, invoices } = useStore();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const { addInvoice, updateInvoice, clients, invoices, getInvoiceById } = useStore();
   const { addNotification } = useNotificationStore();
   const todayDate = getTodayDate();
+  const isEditMode = !!editId;
+  const existingInvoice = isEditMode ? getInvoiceById(editId) : null;
 
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [fileNumber, setFileNumber] = useState('');
@@ -113,10 +119,21 @@ export const NewInvoice: React.FC = () => {
     },
   ]);
 
-  // Auto-generate invoice number on component mount
+  // Load existing invoice data in edit mode or auto-generate invoice number for new invoices
   useEffect(() => {
-    const newInvoiceNumber = generateInvoiceNumber(invoices);
-    setInvoiceNumber(newInvoiceNumber);
+    if (isEditMode && existingInvoice) {
+      // Load existing invoice data
+      setInvoiceNumber(existingInvoice.invoiceNumber);
+      setFileNumber(existingInvoice.fileNumber);
+      setSelectedClientId(existingInvoice.clientId);
+      setDate(existingInvoice.date);
+      setDueDate(existingInvoice.dueDate);
+      setLineItems(existingInvoice.lineItems);
+    } else {
+      // Auto-generate invoice number for new invoice
+      const newInvoiceNumber = generateInvoiceNumber(invoices);
+      setInvoiceNumber(newInvoiceNumber);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -149,6 +166,10 @@ export const NewInvoice: React.FC = () => {
     }
   };
 
+  const handleLoadTemplate = (templateItems: LineItem[]) => {
+    setLineItems(templateItems);
+  };
+
   const handleSaveInvoice = () => {
     if (!selectedClientId) {
       addNotification('error', 'Please select a client');
@@ -157,19 +178,33 @@ export const NewInvoice: React.FC = () => {
 
     const total = calculateInvoiceTotal(lineItems);
 
-    const invoice: Invoice = {
-      id: generateId('inv'),
-      invoiceNumber,
-      fileNumber,
-      clientId: selectedClientId,
-      date,
-      dueDate,
-      lineItems,
-      total,
-    };
+    if (isEditMode && existingInvoice) {
+      // Update existing invoice
+      updateInvoice(existingInvoice.id, {
+        fileNumber,
+        clientId: selectedClientId,
+        date,
+        dueDate,
+        lineItems,
+        total,
+      });
+      addNotification('success', `Invoice ${invoiceNumber} updated successfully!`);
+    } else {
+      // Create new invoice
+      const invoice: Invoice = {
+        id: generateId('inv'),
+        invoiceNumber,
+        fileNumber,
+        clientId: selectedClientId,
+        date,
+        dueDate,
+        lineItems,
+        total,
+      };
+      addInvoice(invoice);
+      addNotification('success', `Invoice ${invoiceNumber} saved successfully!`);
+    }
 
-    addInvoice(invoice);
-    addNotification('success', `Invoice ${invoiceNumber} saved successfully!`);
     navigate('/history');
   };
 
@@ -191,9 +226,11 @@ export const NewInvoice: React.FC = () => {
   return (
     <PageContainer>
       <PageHeader>
-        <PageTitle>Create New Invoice</PageTitle>
+        <PageTitle>{isEditMode ? 'Edit Invoice' : 'Create New Invoice'}</PageTitle>
         <PageDescription>
-          Fill in the details below and see a live preview of your invoice
+          {isEditMode 
+            ? 'Update the invoice details below'
+            : 'Fill in the details below and see a live preview of your invoice'}
         </PageDescription>
       </PageHeader>
 
@@ -264,6 +301,11 @@ export const NewInvoice: React.FC = () => {
               </FormGrid>
 
               <SectionTitle>Line Items</SectionTitle>
+
+              <LineItemTemplates 
+                lineItems={lineItems}
+                onLoadTemplate={handleLoadTemplate}
+              />
 
               <LineItemsSection>
                 {lineItems.map((item, index) => (
