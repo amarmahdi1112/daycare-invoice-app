@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
   LayoutDashboard,
@@ -7,7 +8,12 @@ import {
   History,
   Users,
   Settings,
+  LogOut,
+  User,
 } from 'lucide-react';
+import { useAuthStore } from '../../contexts/authStore';
+import { useNotificationStore } from '../../contexts/notificationStore';
+import { Button } from '../common/Button';
 
 const SidebarContainer = styled.aside`
   width: 250px;
@@ -30,6 +36,7 @@ const Nav = styled.nav`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.sm};
+  flex: 1;
 `;
 
 const StyledNavLink = styled(NavLink)`
@@ -63,7 +70,64 @@ const StyledNavLink = styled(NavLink)`
   }
 `;
 
+const UserSection = styled.div`
+  margin-top: auto;
+  padding-top: ${({ theme }) => theme.spacing.lg};
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+
+  svg {
+    width: 36px;
+    height: 36px;
+    padding: ${({ theme }) => theme.spacing.xs};
+    background-color: ${({ theme }) => theme.colors.primary};
+    color: white;
+    border-radius: 50%;
+  }
+`;
+
+const UserDetails = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const UserName = styled.div`
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  color: ${({ theme }) => theme.colors.text.primary};
+  font-size: ${({ theme }) => theme.fontSizes.sm};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const UserEmail = styled.div`
+  font-size: ${({ theme }) => theme.fontSizes.xs};
+  color: ${({ theme }) => theme.colors.text.muted};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 export const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const { addNotification } = useNotificationStore();
+
+  const handleLogout = () => {
+    logout();
+    addNotification('success', 'Logged out successfully');
+    navigate('/login');
+  };
+
   return (
     <SidebarContainer>
       <Logo>DayCare Invoice</Logo>
@@ -89,6 +153,20 @@ export const Sidebar: React.FC = () => {
           Settings
         </StyledNavLink>
       </Nav>
+
+      <UserSection>
+        <UserInfo>
+          <User />
+          <UserDetails>
+            <UserName>{user?.name || 'User'}</UserName>
+            <UserEmail>{user?.email || ''}</UserEmail>
+          </UserDetails>
+        </UserInfo>
+        <Button variant="danger" size="sm" onClick={handleLogout}>
+          <LogOut size={16} />
+          Logout
+        </Button>
+      </UserSection>
     </SidebarContainer>
   );
 };
