@@ -198,30 +198,26 @@ export const InvoiceHistory: React.FC = () => {
 
   const handleExportPDF = async (invoice: Invoice) => {
     try {
-      // Create a temporary container for the invoice preview
-      const tempDiv = document.createElement('div');
-      tempDiv.id = `temp-invoice-${invoice.id}`;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      document.body.appendChild(tempDiv);
-
-      // We'll use the ViewInvoiceModal's preview by temporarily opening it
+      // Open the modal to render the invoice preview
       setViewingInvoice(invoice);
+      setIsViewModalOpen(true);
       
-      // Wait a bit for render
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for the modal and preview to render
+      await new Promise(resolve => setTimeout(resolve, 300));
       
+      // Export the PDF
       await exportToPDF('invoice-preview', `Invoice-${invoice.invoiceNumber}`);
       addNotification('success', `Invoice ${invoice.invoiceNumber} exported to PDF successfully!`);
       
-      // Clean up
+      // Close the modal after export
+      setIsViewModalOpen(false);
       setViewingInvoice(null);
-      if (tempDiv.parentNode) {
-        document.body.removeChild(tempDiv);
-      }
     } catch (error) {
       console.error('PDF export failed:', error);
       addNotification('error', 'Failed to export PDF. Please try again.');
+      // Close modal on error too
+      setIsViewModalOpen(false);
+      setViewingInvoice(null);
     }
   };
 
